@@ -12,7 +12,7 @@ import logging
 from rethinkmq import MQConnection
 
 USAGE = '''\
-Usage: {0} [-v] <topic> <message>
+Usage: {0} [-v|-h] <topic> <message>
 
 Examples:
 
@@ -24,11 +24,10 @@ Examples:
 '''
 
 def main(argv):
-    if len(argv) < 3:
+    if argv[1] == '-h':
         print USAGE.format(argv[0])
         return
-
-    if argv[1] == '-v':
+    elif argv[1] == '-v':
         logging.root.setLevel(logging.DEBUG)
         logging.basicConfig()
         argv = argv[1:]

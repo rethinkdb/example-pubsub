@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 '''Implementation of message queueing on top of RethinkDB changefeeds.
 
 In this model, exchanges are databases, and documents are topics. The
@@ -49,16 +48,20 @@ def binding_key_to_regex(pattern):
     return '^{}$'.format(''.join(sections).lstrip(r'\.'))
 
 
-def assert_table(meth):
-    '''Decorator for the Exchange class that ensures a table exists before
-    running the method.'''
-    @wraps(meth)
-    def _wrapper(self, *args, **kwargs):
-        if not self._asserted:
-            self.conn.assert_table(self.name)
-            self._asserted = True
-        return meth(self, *args, **kwargs)
-    return _wrapper
+class MQConnection(r.Connection):
+    '''A RethinkDB connection that facilitates exchange creation'''
+
+    def __init__(self,
+                 db='MQ',
+                 host='localhost',
+                 port=28015,
+                 auth_key='',
+                 timeout=20):
+        super(MQConnection, self).__init__(host, port, db, auth_key, timeout)
+
+    def exchange(self, name='messages'):
+        '''Returns an exchange for the current connection'''
+        return Exchange(self, name)
 
 
 class Exchange(object):
@@ -79,33 +82,60 @@ class Exchange(object):
         '''Returns a new queue on this exchange (with no bindings)'''
         return Queue(self, *patterns)
 
-    @assert_table
     def publish(self, topic, payload):
         '''Publish a message to this exchange on the given topic'''
-        self.conn(self.table.insert({
+        self._assert_table()
+        self.table.insert({
             'topic': topic,
             'payload': payload,
             '_force_change': str(uuid.uuid4()),
-        }, upsert=True))
+        }, upsert=True).run(self.conn)
 
-    @assert_table
+
     def consume(self, *patterns):
         '''Generator of messages from the exchange with topics matching the
         given binding patterns
         '''
-        if not patterns:
-            raise Exception('Nothing to consume, no patterns provided')
-        LOGGER.info(
-            'Listening for patterns: %s', ', '.join(repr(p) for p in patterns))
-        regexes = [binding_key_to_regex(pattern) for pattern in patterns]
-        matchers = r.row['topic'].match(regexes.pop(0))
-        for regex in regexes:
-            matchers |= r.row['topic'].match(regex)
+        self._assert_table()
+        LOGGER.info('Listening for patterns: %r', patterns)
+        query = self._query_from_patterns(patterns)
 
-        filter_clause = r.row != None and matchers
-        for message in self.conn(self.table.changes()['new_val']
-                                 .filter(filter_clause)):
+        for message in query.run(self.conn):
             yield message['topic'], message['payload']
+
+    def _query_from_patterns(self, patterns):
+        '''Convert a list of regexes into a ReQL clause filtering a
+        changefeed on the current Exchange's table'''
+        binding = r.row != None
+        if patterns:
+            regexes = map(binding_key_to_regex, patterns)
+            matchers = r.row['topic'].match(regexes.pop(0))
+            for regex in regexes:
+                matchers |= r.row['topic'].match(regex)
+            binding &= matchers
+        return self.table.changes()['new_val'].filter(binding)
+
+    def _assert_table(self):
+        '''Ensures the table specified exists and has the correct
+        primary_key and durability settings'''
+        if self._asserted:
+            return
+        try:
+            # We set durability to soft because we don't actually care
+            # if the write is confirmed on disk, we just want the
+            # change notification (i.e. the message on the queue) to
+            # be generated.
+            r.table_create(
+                self.name,
+                primary_key='topic',
+                durability='soft',
+            ).run(self.conn)
+            LOGGER.info('Created table %r in database %s', name, self.conn.db)
+        except r.RqlRuntimeError as rre:
+            if 'already exists' not in rre.message:
+                raise
+            LOGGER.debug('Table %r already exists, moving on', self.name)
+        self._asserted = True
 
 
 class Topic(object):
@@ -125,10 +155,6 @@ class Topic(object):
         '''Publish a payload to the current topic'''
         self.exchange.publish(self.name, payload)
 
-    def queue(self):
-        '''Returns a new queue that listens on this topic'''
-        return Queue(self.exchange, self)
-
 
 class Queue(object):
     '''Listens for different topics. Represents a change buffer on the
@@ -146,53 +172,10 @@ class Queue(object):
     def bind(self, *patterns):
         '''Bind the current queue to the given pattern. May also pass in a
         topic as a pattern'''
-        LOGGER.debug(
-            'binding patterns: %s',', '.join(repr(p) for p in patterns))
-        for pattern in patterns:
-            if isinstance(pattern, Topic):
-                self._bindings.append(pattern.name + '.#')
-            else:
-                self._bindings.append(pattern)
+        LOGGER.debug('binding patterns: %s', patterns)
+        self._bindings.extend(patterns)
 
     def consume(self):
         '''Returns a generator that returns messages from this queue's
         subscriptions'''
         return self.exchange.consume(*self._bindings)
-
-
-class MQConnection(object):
-    '''Represents a connection with some MQ-specific behavior. Each
-    MQConnection has an associated database, but multiple connections
-    can be made to the same database.
-    '''
-    def __init__(self,
-                 db='MQ',
-                 host='localhost',
-                 port=28015,
-                 password=None):
-        self._conn = r.connect(host, port, password)
-        self._db = db
-        self._conn.use(db)
-
-    def exchange(self, name='messages'):
-        '''Returns an exchange for the current connection'''
-        return Exchange(self, name)
-
-    def assert_table(self, name):
-        '''Ensures the table specified exists and has the correct
-        primary_key and durability settings'''
-        try:
-            # We set durability to soft because we don't actually care
-            # if the write is confirmed on disk, we just want the
-            # change notification to be generated.
-            self(r.table_create(name, primary_key='topic', durability='soft'))
-            LOGGER.info('Created table %r in database %s', name, self._db)
-        except r.RqlRuntimeError as rre:
-            if 'already exists' not in rre.message:
-                raise
-            LOGGER.debug('Table %r already exists, moving on', name)
-
-    def __call__(self, query, **kwargs):
-        '''Run a query with this connection'''
-        LOGGER.debug('Running: %s', query)
-        return query.run(self._conn, **kwargs)

@@ -27,15 +27,13 @@ Examples:
 '''
 
 def main(argv):
-    if not argv[1:]:
+    if len(argv) > 1 and argv[1] == '-h':
         print USAGE.format(argv[0])
         return
-
-    if argv[1] == '-v':
+    elif len(argv) > 1 and argv[1] == '-v':
         logging.root.setLevel(logging.DEBUG)
         logging.basicConfig()
         argv = argv[1:]
-
 
     # create the queue (no tables or documents are created yet)
     queue = MQConnection('MQ').exchange('messages').queue(*argv[1:])
