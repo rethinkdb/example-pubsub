@@ -17,16 +17,16 @@ def main():
     parser = argparse.ArgumentParser(
         description='Demo for RethinkDB pub-sub')
     parser.add_argument(
-        'pub_or_sub',
-        type=str,
-        help="Whether to publish or subscribe",
-        choices=['publish', 'subscribe'],
-    )
-    parser.add_argument(
         'demo',
         type=str,
         help='Which demo to run',
         choices=['regex', 'tags', 'hierarchy'],
+    )
+    parser.add_argument(
+        'pub_or_sub',
+        type=str,
+        help="Whether to publish or subscribe",
+        choices=['publish', 'subscribe'],
     )
     args = parser.parse_args()
 
@@ -62,22 +62,22 @@ def regex_subscribe():
         # This avoids regexes like 'traffic\.(.+)\.salem' where the
         # state can only be one thing.
         state_city = random.choice([
-            state + '.' + random.choice([city, '(.+)']),
+            state + '\.' + random.choice([city, '(.+)']),
             '(.+)',
         ]),
         category = random.choice([category, '(.+)']),
     )
-    reql_query = r.row['topic'].match(topic_regex)
-    queue = exchange.queue(reql_query)
+    reql_filter = lambda topic: topic.match(topic_regex)
+    queue = exchange.queue(reql_filter)
     
     def print_subscription():
         print '=' * 20
         print 'Subscribed to:', topic_regex
-        print '=' * 20
+        print '=' * 20 + '\n'
 
     print_subscription()
 
-    for i, (topic, payload) in enumerate(queue.consume()):
+    for i, (topic, payload) in enumerate(queue.subscribe()):
         if i % 20 == 19:
             # Reminder what we're subscribed to
             print_subscription()
@@ -114,23 +114,24 @@ def tags_subscribe():
     exchange = repubsub.Exchange(conn, 'tags_demo')
     
     tags = random.sample(random_topic(), 2)
-    reql_query = r.row['topic'].contains(*tags)
-    queue = exchange.queue(reql_query)
+    reql_filter = lambda topic: topic.contains(*tags)
+    queue = exchange.queue(reql_filter)
 
     def print_subscription():
         print '=' * 20
         print 'Subscribed to messages with tags: [', ', '.join(tags), ']'
-        print '=' * 20
+        print '=' * 20 + '\n'
 
     print_subscription()
 
-    for i, (topic, payload) in enumerate(queue.consume()):
+    for i, (topic, payload) in enumerate(queue.subscribe()):
         if i % 10 == 9:
             # Reminder what we're subscribed to
             print_subscription()
 
         print 'Received message with tags: [', ', '.join(topic), ']'
         print '\t', payload
+        print
 
 
 def hierarchy_publish():
@@ -160,18 +161,18 @@ def hierarchy_subscribe():
     exchange = repubsub.Exchange(conn, 'hierarchy_demo')
 
     category, state, city = random_topic()
-    reql_query = r.row['topic'][category][state].contains(city)
-    queue = exchange.queue(reql_query)
+    reql_filter = lambda topic: topic[category][state].contains(city)
+    queue = exchange.queue(reql_filter)
 
     def print_subscription():
         print '=' * 20
         print 'Subscribed to topic: ',
         print '[{category!r}][{state!r}].contains({city!r})'.format(
             category=category, state=state, city=city)
-        print '=' * 20
+        print '=' * 20 + '\n'
 
     print_subscription()
-    for i, (topic, payload) in enumerate(queue.consume()):
+    for i, (topic, payload) in enumerate(queue.subscribe()):
         if i % 5 == 4:
             # Reminder what we're subscribed to
             print_subscription()
@@ -192,12 +193,12 @@ def random_topic():
 def random_hierarchy():
     '''Returns a random hierarchical topic'''
     ret = {}
-    for category in random.sample(CATEGORIES.keys(), randint(1, 3)):
+    for category in random.sample(CATEGORIES.keys(), randint(1, 2)):
         for state in random.sample(LOCATIONS.keys(), randint(1, 2)):
             for city in random.sample(LOCATIONS[state], randint(1, 2)):
-                ret.setdefault(category, {}) \
-                   .setdefault(state, []) \
-                   .append(city)
+                cities = ret.setdefault(category, {}).setdefault(state, [])
+                cities.append(city)
+                cities.sort()
     return ret
 
 
@@ -221,7 +222,7 @@ NEWS_STORIES = [
     'New study says nobody really washes their hands',
     'Tall buildings scary claims local man',
     'Local politician found not to be corrupt',
-    'Common ingredient in kitchens killing you right now',
+    'Common kitchen ingredient killing you right now',
 ]
 
 WEATHER_STORIES = [

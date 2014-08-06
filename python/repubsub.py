@@ -1,4 +1,4 @@
-'''Implementation of message queueing on top of RethinkDB changefeeds.
+'''Implementation of publish/subscribe on top of RethinkDB changefeeds.
 
 In this model, exchanges are databases, and documents are topics. The
 current value of the topic in the database is just whatever the last
@@ -21,14 +21,15 @@ that there is no way to cause the change buffers to be persisted
 across connections. Because of this, if the client sends a STOP
 request to the changefeed, or disconnects, the queue is effectively
 lost. Any messages on the queue are unrecoverable.
-
 '''
 
-from functools import wraps
-import uuid
+import random
 
 from rethinkdb import connect
 import rethinkdb as r
+
+
+__all__ = ['connect', 'Exchange', 'Topic', 'Queue']
 
 
 class Exchange(object):
@@ -53,9 +54,10 @@ class Exchange(object):
         the given query.'''
         return Queue(self, binding_query)
 
-    def full_query(self, filter_clause):
-        '''Returns the full ReQL query for a given filter clause'''
-        return self.table.changes()['new_val'].filter(filter_clause)
+    def full_query(self, filter_func):
+        '''Returns the full ReQL query for a given filter function'''
+        return self.table.changes()['new_val'].filter(
+            lambda row: filter_func(row['topic']))
 
     def publish(self, topic_key, payload):
         '''Publish a message to this exchange on the given topic'''
@@ -68,7 +70,7 @@ class Exchange(object):
             else r.literal(topic_key),
         }).update({
             'payload': payload,
-            '_force_change': str(uuid.uuid4())
+            '_force_change': random.random(),
         }).run(self.conn)
 
         # If that doesn't work, insert the document. Note: it's
@@ -80,16 +82,16 @@ class Exchange(object):
             result = self.table.insert({
                 'topic': topic_key,
                 'payload': payload,
-                '_force_change': str(uuid.uuid4()),
+                '_force_change': random.random(),
             }).run(self.conn)
 
-    def consume(self, binding):
+    def subscribe(self, filter_func):
         '''Generator of messages from the exchange with topics matching the
-        given binding patterns
+        given filter function
         '''
         self.assert_table()
 
-        for message in self.full_query(binding).run(self.conn):
+        for message in self.full_query(filter_func).run(self.conn):
             yield message['topic'], message['payload']
 
     def assert_table(self):
@@ -140,18 +142,18 @@ class Topic(object):
 class Queue(object):
     '''A queue that filters for messages in the exchange'''
 
-    def __init__(self, exchange, filter_expr):
+    def __init__(self, exchange, filter_func):
         self.exchange = exchange
-        self.binding = filter_expr
+        self.filter_func = filter_func
 
-    def consume(self):
+    def subscribe(self):
         '''Returns a generator that returns messages from this queue's
         subscriptions'''
-        return self.exchange.consume(self.binding)
+        return self.exchange.subscribe(self.filter_func)
 
     def full_query(self):
         '''Returns the full ReQL query for this queue'''
-        return self.exchange.full_query(self.binding)
+        return self.exchange.full_query(self.filter_func)
 
     def __repr__(self):
-        return 'Queue({!s})'.format(r.expr(self.binding))
+        return 'Queue({!s})'.format(r.expr(self.filter_func))
