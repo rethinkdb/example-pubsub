@@ -136,7 +136,7 @@ class Topic(object):
         self.exchange.publish(self.key, payload)
 
     def __repr__(self):
-        return 'Topic({!s})'.format(self.key)
+        return 'Topic({})'.format(self.key)
 
 
 class Queue(object):
@@ -156,4 +156,4 @@ class Queue(object):
         return self.exchange.full_query(self.filter_func)
 
     def __repr__(self):
-        return 'Queue({!s})'.format(r.expr(self.filter_func))
+        return 'Queue({})'.format(r.expr(self.filter_func))

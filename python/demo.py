@@ -40,9 +40,9 @@ def regex_publish():
     exchange = repubsub.Exchange(conn, 'regex_demo')
 
     while True:
-        category, state, city = random_topic()
-        topic_key = '{category}.{state}.{city}'.format(
-            category=category, state=state, city=city)
+        category, chartype, character = random_topic()
+        topic_key = '{category}.{chartype}.{character}'.format(
+            category=category, chartype=chartype, character=character)
         payload = random.choice(CATEGORIES[category])
 
         print 'Publishing on topic', topic_key, ':', payload
@@ -57,12 +57,12 @@ def regex_subscribe():
     conn = r.connect(db='repubsub')
     exchange = repubsub.Exchange(conn, 'regex_demo')
 
-    category, state, city = random_topic()
-    topic_regex = r'^{category}\.{state_city}$'.format(
-        # This avoids regexes like 'traffic\.(.+)\.salem' where the
-        # state can only be one thing.
-        state_city = random.choice([
-            state + '\.' + random.choice([city, '(.+)']),
+    category, chartype, character = random_topic()
+    topic_regex = r'^{category}\.{chartype_character}$'.format(
+        # This avoids regexes like 'fights\.(.+)\.Batman' where the
+        # chartype can only be one thing.
+        chartype_character = random.choice([
+            chartype + '\.' + random.choice([character, '(.+)']),
             '(.+)',
         ]),
         category = random.choice([category, '(.+)']),
@@ -97,10 +97,9 @@ def tags_publish():
         # tags, the same document in the database will be updated
         # This should result in 270 possible tag values
         topic_key = sorted(set(random_topic() + random_topic()))
-        payload = random.choice(
-            NEWS_STORIES + TRAFFIC_STORIES + WEATHER_STORIES)
+        payload = random.choice(TEAMUPS + EVENTS + FIGHTS)
 
-        print 'Publishing on tags [', ', '.join(topic_key), ']:'
+        print 'Publishing on tags #{}'.format(' #'.join(topic_key))
         print '\t', payload
 
         exchange.topic(topic_key).publish(payload)
@@ -119,7 +118,7 @@ def tags_subscribe():
 
     def print_subscription():
         print '=' * 20
-        print 'Subscribed to messages with tags: [', ', '.join(tags), ']'
+        print 'Subscribed to messages with tags: #{}'.format(' #'.join(tags))
         print '=' * 20 + '\n'
 
     print_subscription()
@@ -129,7 +128,7 @@ def tags_subscribe():
             # Reminder what we're subscribed to
             print_subscription()
 
-        print 'Received message with tags: [', ', '.join(topic), ']'
+        print 'Received message with tags: #{}'.format(' #'.join(topic))
         print '\t', payload
         print
 
@@ -141,9 +140,7 @@ def hierarchy_publish():
     exchange = repubsub.Exchange(conn, 'hierarchy_demo')
 
     while True:
-        topic_key = random_hierarchy()
-        payload = random.choice(
-            NEWS_STORIES + TRAFFIC_STORIES + WEATHER_STORIES)
+        topic_key, payload = random_hierarchy()
 
         print 'Publishing on hierarchical topic:'
         print_hierarchy(topic_key)
@@ -160,15 +157,15 @@ def hierarchy_subscribe():
     conn = r.connect(db='repubsub')
     exchange = repubsub.Exchange(conn, 'hierarchy_demo')
 
-    category, state, city = random_topic()
-    reql_filter = lambda topic: topic[category][state].contains(city)
+    category, chartype, character = random_topic()
+    reql_filter = lambda topic: topic[category][chartype].contains(character)
     queue = exchange.queue(reql_filter)
 
     def print_subscription():
         print '=' * 20
         print 'Subscribed to topic: ',
-        print '[{category!r}][{state!r}].contains({city!r})'.format(
-            category=category, state=state, city=city)
+        print "['{category}']['{chartype}'].contains('{character}')".format(
+            category=category, chartype=chartype, character=character)
         print '=' * 20 + '\n'
 
     print_subscription()
@@ -185,70 +182,68 @@ def hierarchy_subscribe():
 def random_topic():
     '''Returns the pieces of a random topic'''
     category = random.choice(CATEGORIES.keys())    
-    state = random.choice(LOCATIONS.keys())
-    city = random.choice(LOCATIONS[state])
-    return category, state, city
+    chartype = random.choice(CHARACTERS.keys())
+    character = random.choice(CHARACTERS[chartype])
+    return category, chartype, character
 
 
 def random_hierarchy():
     '''Returns a random hierarchical topic'''
-    ret = {}
+    topic = {}
+    categories = []
     for category in random.sample(CATEGORIES.keys(), randint(1, 2)):
-        for state in random.sample(LOCATIONS.keys(), randint(1, 2)):
-            for city in random.sample(LOCATIONS[state], randint(1, 2)):
-                cities = ret.setdefault(category, {}).setdefault(state, [])
-                cities.append(city)
+        categories.extend(CATEGORIES[category])
+        for chartype in random.sample(CHARACTERS.keys(), randint(1, 2)):
+            for character in random.sample(CHARACTERS[chartype], randint(1, 2)):
+                cities = topic.setdefault(category, {}).setdefault(chartype, [])
+                cities.append(character)
                 cities.sort()
-    return ret
+    return topic, random.choice(categories)
 
 
 def print_hierarchy(h):
     '''Prints a topic hierarchy nicely'''
-    for category, states in h.iteritems():
+    for category, chartypes in h.iteritems():
         print '   ', category, ':'
-        for state, cities in states.iteritems():
-            print '       ', state, ':', ', '.join(cities)
+        for chartype, cities in chartypes.iteritems():
+            print '       ', chartype, ':', ', '.join(cities)
 
 
 # These are used in the demos
-LOCATIONS = {
-    'fl': ['tampa', 'miami', 'orlando'],
-    'ca': ['mountainview', 'cupertino', 'sanjose'],
-    'ma': ['boston', 'cambridge', 'salem'],
+CHARACTERS = {
+    'superheroes': ['Batman', 'Superman', 'Captain America'],
+    'supervillains': ['Joker', 'Lex Luthor', 'Red Skull'],
+    'sidekicks': ['Robin', 'Jimmy Olsen', 'Bucky Barnes'],
 }
 
-NEWS_STORIES = [
-    'Person in dinosaur suit robs a grocery store',
-    'New study says nobody really washes their hands',
-    'Tall buildings scary claims local man',
-    'Local politician found not to be corrupt',
-    'Common kitchen ingredient killing you right now',
+TEAMUPS = [
+    "You'll never guess who's teaming up",
+    'A completely one-sided fight between superheroes',
+    'Sidekick goes on rampage. Hundreds given parking tickets',
+    'Local politician warns of pairing between villains',
+    'Unexpected coalition teams up to take on opponents',
 ]
 
-WEATHER_STORIES = [
-    "It's hot.",
-    "It's cold.",
-    "It's rainy.",
-    "It's foggy.",
-    "It's pretty nice.",
-    "Tsunami warning",
-    "Hurricane warning",
-    "Blizzard warning",
+FIGHTS = [
+    'A fight rages between combatants',
+    'Tussle between mighty foes continues',
+    'All out war in the streets between battling heroes',
+    "City's greatest hero defeated!",
+    "Villain locked in minimum security prison after defeat",
 ]
 
-TRAFFIC_STORIES = [
-    "Congestion on major roads",
-    "Couch fell off truck on the highway",
-    "Accident near downtown intersection",
-    'Fifty car pile-up',
-    'Rush-hour',
-    'People playing frisbee on the highway',
+EVENTS = [
+    "Scientists accidentally thaw a T-Rex and release it",
+    "Time vortex opens over downtown",
+    "EMP turns out the lights. You'll never guess who turned them back on",
+    "Inter-dimensional sludge released. Who can contain it?",
+    "Super computer-virus disables all police cars. City helpless.",
 ]
 
 CATEGORIES = {
-    'news': NEWS_STORIES,
-    'weather': WEATHER_STORIES,
-    'traffic': TRAFFIC_STORIES,
+    'teamups': TEAMUPS,
+    'fights': FIGHTS,
+    'events': EVENTS,
 }
 
 if __name__ == '__main__':
