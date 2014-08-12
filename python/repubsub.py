@@ -73,11 +73,11 @@ class Exchange(object):
             '_force_change': random.random(),
         }).run(self.conn)
 
-        # If that doesn't work, insert the document. Note: it's
-        # possible someone else could have inserted in the meantime
-        # and this would create a duplicate. That's a risk we take
-        # here. The consequence is that duplicated messages may be
-        # sent to the consumer.
+        # If the topic doesn't exist yet, insert a new document. Note:
+        # it's possible someone else could have inserted it in the
+        # meantime and this would create a duplicate. That's a risk we
+        # take here. The consequence is that duplicated messages may
+        # be sent to the consumer.
         if not result['replaced']:
             result = self.table.insert({
                 'topic': topic_key,
