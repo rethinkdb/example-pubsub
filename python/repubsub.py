@@ -1,4 +1,4 @@
-'''Implementation of publish/subscribe on top of RethinkDB changefeeds.
+'''Implementation of message queueing on top of RethinkDB changefeeds.
 
 In this model, exchanges are databases, and documents are topics. The
 current value of the topic in the database is just whatever the last
@@ -36,9 +36,10 @@ class Exchange(object):
     '''Represents a message exchange which messages can be sent to and
     consumed from. Each exchange has an underlying RethinkDB table.'''
 
-    def __init__(self, conn, name):
+    def __init__(self, name, **kwargs):
+        self.db = kwargs.get('db', 'test')
         self.name = name
-        self.conn = conn
+        self.conn = r.connect(**kwargs)
         self.table = r.table(name)
         self._asserted = False
 
@@ -70,7 +71,7 @@ class Exchange(object):
             else r.literal(topic_key),
         }).update({
             'payload': payload,
-            '_force_change': random.random(),
+            'updated_on': r.now(),
         }).run(self.conn)
 
         # If the topic doesn't exist yet, insert a new document. Note:
@@ -82,10 +83,10 @@ class Exchange(object):
             result = self.table.insert({
                 'topic': topic_key,
                 'payload': payload,
-                '_force_change': random.random(),
+                'updated_on': r.now(),
             }).run(self.conn)
 
-    def subscribe(self, filter_func):
+    def subscription(self, filter_func):
         '''Generator of messages from the exchange with topics matching the
         given filter function
         '''
@@ -122,12 +123,9 @@ class Exchange(object):
 
 class Topic(object):
     '''Represents a topic that may be published to.
-
-    Also responds to any ReQL methods that can be used on
-    `r.row`.
     '''
 
-    def __init__(self, exchange, topic_key=None):
+    def __init__(self, exchange, topic_key):
         self.key = topic_key
         self.exchange = exchange
 
@@ -140,16 +138,16 @@ class Topic(object):
 
 
 class Queue(object):
-    '''A queue that filters for messages in the exchange'''
+    '''A queue that filters messages in the exchange'''
 
     def __init__(self, exchange, filter_func):
         self.exchange = exchange
         self.filter_func = filter_func
 
-    def subscribe(self):
+    def subscription(self):
         '''Returns a generator that returns messages from this queue's
         subscriptions'''
-        return self.exchange.subscribe(self.filter_func)
+        return self.exchange.subscription(self.filter_func)
 
     def full_query(self):
         '''Returns the full ReQL query for this queue'''

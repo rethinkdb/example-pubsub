@@ -36,8 +36,7 @@ def main():
 def regex_publish():
     '''Publishes messages to a simple string topic'''
 
-    conn = r.connect(db='repubsub')
-    exchange = repubsub.Exchange(conn, 'regex_demo')
+    exchange = repubsub.Exchange('regex_demo', db='repubsub')
 
     while True:
         category, chartype, character = random_topic()
@@ -54,8 +53,7 @@ def regex_publish():
 def regex_subscribe():
     '''Subscribes to messages on a topic that match a regex'''
 
-    conn = r.connect(db='repubsub')
-    exchange = repubsub.Exchange(conn, 'regex_demo')
+    exchange = repubsub.Exchange('regex_demo', db='repubsub')
 
     category, chartype, character = random_topic()
     topic_regex = r'^{category}\.{chartype_character}$'.format(
@@ -77,7 +75,7 @@ def regex_subscribe():
 
     print_subscription()
 
-    for i, (topic, payload) in enumerate(queue.subscribe()):
+    for i, (topic, payload) in enumerate(queue.subscription()):
         if i % 20 == 19:
             # Reminder what we're subscribed to
             print_subscription()
@@ -88,29 +86,27 @@ def regex_subscribe():
 def tags_publish():
     '''Publishes messages with an array of tags as a topic'''
 
-    conn = r.connect(db='repubsub')
-    exchange = repubsub.Exchange(conn, 'tags_demo')
+    exchange = repubsub.Exchange('tags_demo', db='repubsub')
     
     while True:
         # Get two random topics, remove duplicates, and sort them
         # Sorting ensures that if two topics consist of the same
         # tags, the same document in the database will be updated
         # This should result in 270 possible tag values
-        topic_key = sorted(set(random_topic() + random_topic()))
+        topic_tags = sorted(set(random_topic() + random_topic()))
         payload = random.choice(TEAMUPS + EVENTS + FIGHTS)
 
-        print 'Publishing on tags #{}'.format(' #'.join(topic_key))
+        print 'Publishing on tags #{}'.format(' #'.join(topic_tags))
         print '\t', payload
 
-        exchange.topic(topic_key).publish(payload)
+        exchange.topic(topic_tags).publish(payload)
         time.sleep(0.5)
 
 
 def tags_subscribe():
     '''Subscribes to messages that have specific tags in the topic'''
 
-    conn = r.connect(db='repubsub')
-    exchange = repubsub.Exchange(conn, 'tags_demo')
+    exchange = repubsub.Exchange('tags_demo', db='repubsub')
     
     tags = random.sample(random_topic(), 2)
     reql_filter = lambda topic: topic.contains(*tags)
@@ -123,12 +119,12 @@ def tags_subscribe():
 
     print_subscription()
 
-    for i, (topic, payload) in enumerate(queue.subscribe()):
+    for i, (topic_tags, payload) in enumerate(queue.subscription()):
         if i % 10 == 9:
             # Reminder what we're subscribed to
             print_subscription()
 
-        print 'Received message with tags: #{}'.format(' #'.join(topic))
+        print 'Received message with tags: #{}'.format(' #'.join(topic_tags))
         print '\t', payload
         print
 
@@ -136,8 +132,7 @@ def tags_subscribe():
 def hierarchy_publish():
     '''Publishes messages on a hierarchical topic'''
 
-    conn = r.connect(db='repubsub')
-    exchange = repubsub.Exchange(conn, 'hierarchy_demo')
+    exchange = repubsub.Exchange('hierarchy_demo', db='repubsub')
 
     while True:
         topic_key, payload = random_hierarchy()
@@ -154,8 +149,7 @@ def hierarchy_publish():
 def hierarchy_subscribe():
     '''Subscribes to messages on a hierarchical topic'''
 
-    conn = r.connect(db='repubsub')
-    exchange = repubsub.Exchange(conn, 'hierarchy_demo')
+    exchange = repubsub.Exchange('hierarchy_demo', db='repubsub')
 
     category, chartype, character = random_topic()
     reql_filter = lambda topic: topic[category][chartype].contains(character)
@@ -169,7 +163,7 @@ def hierarchy_subscribe():
         print '=' * 20 + '\n'
 
     print_subscription()
-    for i, (topic, payload) in enumerate(queue.subscribe()):
+    for i, (topic, payload) in enumerate(queue.subscription()):
         if i % 5 == 4:
             # Reminder what we're subscribed to
             print_subscription()
@@ -195,9 +189,10 @@ def random_hierarchy():
         categories.extend(CATEGORIES[category])
         for chartype in random.sample(CHARACTERS.keys(), randint(1, 2)):
             for character in random.sample(CHARACTERS[chartype], randint(1, 2)):
-                cities = topic.setdefault(category, {}).setdefault(chartype, [])
-                cities.append(character)
-                cities.sort()
+                characters = topic.setdefault(
+                    category, {}).setdefault(chartype, [])
+                characters.append(character)
+                characters.sort()
     return topic, random.choice(categories)
 
 
@@ -205,8 +200,8 @@ def print_hierarchy(h):
     '''Prints a topic hierarchy nicely'''
     for category, chartypes in h.iteritems():
         print '   ', category, ':'
-        for chartype, cities in chartypes.iteritems():
-            print '       ', chartype, ':', ', '.join(cities)
+        for chartype, characters in chartypes.iteritems():
+            print '       ', chartype, ':', ', '.join(characters)
 
 
 # These are used in the demos
