@@ -67,18 +67,14 @@ def regex_subscribe():
     )
     reql_filter = lambda topic: topic.match(topic_regex)
     queue = exchange.queue(reql_filter)
-    
-    def print_subscription():
-        print '=' * 20
-        print 'Subscribed to:', topic_regex
-        print '=' * 20 + '\n'
 
-    print_subscription()
+    sub_message = 'Subscribed to: %s' % topic_regex
+    print_subscription(sub_message)
 
     for i, (topic, payload) in enumerate(queue.subscription()):
         if i % 20 == 19:
             # Reminder what we're subscribed to
-            print_subscription()
+            print_subscription(sub_message)
 
         print 'Received on', topic, ':', payload
 
@@ -112,17 +108,13 @@ def tags_subscribe():
     reql_filter = lambda topic: topic.contains(*tags)
     queue = exchange.queue(reql_filter)
 
-    def print_subscription():
-        print '=' * 20
-        print 'Subscribed to messages with tags: #{}'.format(' #'.join(tags))
-        print '=' * 20 + '\n'
-
-    print_subscription()
+    sub_message = 'Subscribed to messages with tags: #%s' % ' #'.join(tags)
+    print_subscription(sub_message)
 
     for i, (topic_tags, payload) in enumerate(queue.subscription()):
         if i % 10 == 9:
             # Reminder what we're subscribed to
-            print_subscription()
+            print_subscription(sub_message)
 
         print 'Received message with tags: #{}'.format(' #'.join(topic_tags))
         print '\t', payload
@@ -155,18 +147,14 @@ def hierarchy_subscribe():
     reql_filter = lambda topic: topic[category][chartype].contains(character)
     queue = exchange.queue(reql_filter)
 
-    def print_subscription():
-        print '=' * 20
-        print 'Subscribed to topic: ',
-        print "['{category}']['{chartype}'].contains('{character}')".format(
-            category=category, chartype=chartype, character=character)
-        print '=' * 20 + '\n'
+    sub_message = 'Subscribed to topic: [%r][%r].contains(%r)' % (
+        category, chartype, character)
+    print_subscription(sub_message)
 
-    print_subscription()
     for i, (topic, payload) in enumerate(queue.subscription()):
         if i % 5 == 4:
             # Reminder what we're subscribed to
-            print_subscription()
+            print_subscription(sub_message)
 
         print 'Received message with topic:'
         print_hierarchy(topic)
@@ -203,12 +191,19 @@ def print_hierarchy(h):
         for chartype, characters in chartypes.iteritems():
             print '       ', chartype, ':', ', '.join(characters)
 
+def print_subscription(sub):
+    '''Prints a subscription reminder message'''
+    print '=' * len(sub)
+    print sub
+    print '=' * len(sub)
+    print
+
 
 # These are used in the demos
 CHARACTERS = {
-    'superheroes': ['Batman', 'Superman', 'Captain America'],
-    'supervillains': ['Joker', 'Lex Luthor', 'Red Skull'],
-    'sidekicks': ['Robin', 'Jimmy Olsen', 'Bucky Barnes'],
+    'superheroes': ['Batman', 'Superman', 'CaptainAmerica'],
+    'supervillains': ['Joker', 'Lex Luthor', 'RedSkull'],
+    'sidekicks': ['Robin', 'JimmyOlsen', 'BuckyBarnes'],
 }
 
 TEAMUPS = [

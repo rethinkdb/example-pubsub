@@ -33,7 +33,7 @@ module Repubsub
   # consumed from. Each exchange has an underlying RethinkDB table.
   class Exchange
     def initialize(name, opts={})
-      @db = opts.fetch(:db, 'test')
+      @db = opts.fetch(:db, :test)
       @name = name.to_s
       @conn = r.connect(opts)
       @table = r.table(name)
@@ -53,7 +53,7 @@ module Repubsub
 
     # The full ReQL query for a given filter function
     def full_query(filter_func)
-      @table.changes['new_val'].filter{|row| filter_func.call(row['topic'])}
+      @table.changes[:new_val].filter{|row| filter_func.call(row[:topic])}
     end
 
     # Publish a message to this exchange on the given topic
@@ -61,10 +61,10 @@ module Repubsub
       assert_table
 
       result = @table.filter(
-        topic: topic_key.class == Hash ? r.literal(topic_key) : topic_key
+        :topic => topic_key.class == Hash ? r.literal(topic_key) : topic_key
       ).update(
-        payload: payload,
-        updated_on: r.now,
+        :payload => payload,
+        :updated_on => r.now,
       ).run(@conn)
 
       # If the topic doesn't exist yet, insert a new document. Note:
@@ -74,9 +74,9 @@ module Repubsub
       # be sent to the consumer.    
       if result['replaced'].zero?
         @table.insert(
-          topic: topic_key,
-          payload: payload,
-          updated_on: r.now
+          :topic => topic_key,
+          :payload => payload,
+          :updated_on => r.now,
         ).run(@conn)
       end
     end
@@ -108,7 +108,7 @@ module Repubsub
         # We set durability to soft because we don't actually care if
         # the write is confirmed on disk, we just want the change
         # notification (i.e. the message on the queue) to be generated.
-        r.table_create(@name, :durability => 'soft').run(@conn)
+        r.table_create(@name, :durability => :soft).run(@conn)
       rescue RethinkDB::RqlRuntimeError => rre
         unless rre.to_s.include?('already exists')
           raise

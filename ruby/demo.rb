@@ -8,7 +8,7 @@ include RethinkDB::Shortcuts
 
 # Publishes messages to a simple string topic
 def regex_publish
-  exchange = Repubsub::Exchange.new(:regex_demo, :db => 'repubsub')
+  exchange = Repubsub::Exchange.new(:regex_demo, :db => :repubsub)
 
   loop do
     category, chartype, character = random_topic
@@ -24,7 +24,7 @@ end
 
 # Subscribes to messages on a topic that match a regex
 def regex_subscribe
-  exchange = Repubsub::Exchange.new(:regex_demo, :db => 'repubsub')
+  exchange = Repubsub::Exchange.new(:regex_demo, :db => :repubsub)
 
   category, chartype, character = random_topic
   maybe_character = [character, '(.+)'].sample
@@ -32,16 +32,13 @@ def regex_subscribe
   topic_regex = "^#{category}\.#{maybe_chartype}$"
   queue = exchange.queue{|topic| topic.match(topic_regex)}
 
-  print_subscription = lambda do
-    puts '=' * 20, "Subscribed to: #{topic_regex}", '=' * 20, ''
-  end
-
-  print_subscription.call
+  sub_message = "Subscribed to: #{topic_regex}"
+  print_subscription(sub_message)
 
   queue.subscription.with_index do |(topic, payload), i|
     if i % 20 == 19
-        # Reminder what we're subscribed to
-        print_subscription.call
+      # Reminder what we're subscribed to
+      print_subscription(sub_message)
     end
     puts "Received on #{topic}: #{payload}"
   end
@@ -50,7 +47,7 @@ end
 
 # Publishes messages with an array of tags as a topic
 def tags_publish
-  exchange = Repubsub::Exchange.new(:tags_demo, :db => 'repubsub')
+  exchange = Repubsub::Exchange.new(:tags_demo, :db => :repubsub)
   
   loop do
     # Get two random topics, remove duplicates, and sort them
@@ -69,21 +66,18 @@ end
 
 # Subscribes to messages that have specific tags in the topic
 def tags_subscribe
-  exchange = Repubsub::Exchange.new(:tags_demo, :db => 'repubsub')
+  exchange = Repubsub::Exchange.new(:tags_demo, :db => :repubsub)
 
   tags = random_topic.sample(2)
   queue = exchange.queue{|topic| topic.contains(*tags)}
 
-  print_subscription = lambda do
-    puts '='*20, "Subscribed to messages with tags ##{tags.join(' #')}", '='*20
-  end
-  
-  print_subscription.call
+  sub_message = "Subscribed to messages with tags ##{tags.join(' #')}"
+  print_subscription(sub_message)
 
   queue.subscription.with_index do |(topic, payload), i|
     if i % 10 == 9
       # Reminder what we're subscribed to
-      print_subscription.call
+      print_subscription(sub_message)
     end
     puts "Received message with tags: ##{topic.join(' #')}", "\t #{payload}\n"
   end
@@ -91,7 +85,7 @@ end
 
 # Publishes messages on a hierarchical topic
 def hierarchy_publish
-  exchange = Repubsub::Exchange.new(:hierarchy_demo, :db => 'repubsub')
+  exchange = Repubsub::Exchange.new(:hierarchy_demo, :db => :repubsub)
 
   loop do
     topic_hash, payload = random_hierarchy
@@ -107,22 +101,19 @@ end
 
 # Subscribes to messages on a hierarchical topic
 def hierarchy_subscribe
-  exchange = Repubsub::Exchange.new(:hierarchy_demo, :db => 'repubsub')
+  exchange = Repubsub::Exchange.new(:hierarchy_demo, :db => :repubsub)
   
   category, chartype, character = random_topic
   queue = exchange.queue{|topic| topic[category][chartype].contains(character)}
-  
-  print_subscription = lambda do
-    topic_query = "['#{category}']['#{chartype}'].contains('#{character}')"
-    puts '='*20, "Subscribed to topic: #{topic_query}", '='*20, ''
-  end
 
-  print_subscription.call
+  sub_message = "Subscribed to topic: ['#{category}']['#{chartype}']\
+.contains('#{character}')"
+  print_subscription(sub_message)
 
   queue.subscription.with_index do |(topic,payload),i|
     if i % 5 == 4
       # Reminder what we're subscribed to
-      print_subscription.call
+      print_subscription(sub_message)
     end
 
     puts 'Received message with topic:'
@@ -166,11 +157,19 @@ def print_hierarchy(hash)
   end
 end
 
+# Prints a subscription reminder message
+def print_subscription(sub)
+  puts '=' * sub.length
+  puts sub
+  puts '=' * sub.length
+  puts
+end
+
 # These are used in the demos
 $CHARACTERS = {
-    :superheroes => ['Batman', 'Superman', 'Captain America'],
-    :supervillains => ['Joker', 'Lex Luthor', 'Red Skull'],
-    :sidekicks => ['Robin', 'Jimmy Olsen', 'Bucky Barnes'],
+    :superheroes => [:Batman, :Superman, :CaptainAmerica],
+    :supervillains => [:Joker, :LexLuthor, :RedSkull],
+    :sidekicks => [:Robin, :JimmyOlsen, :BuckyBarnes],
 }
 
 $TEAMUPS = [
