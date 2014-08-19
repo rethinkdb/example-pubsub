@@ -48,7 +48,7 @@ end
 # Publishes messages with an array of tags as a topic
 def tags_publish
   exchange = Repubsub::Exchange.new(:tags_demo, :db => :repubsub)
-  
+
   loop do
     # Get two random topics, remove duplicates, and sort them
     # Sorting ensures that if two topics consist of the same
@@ -56,7 +56,7 @@ def tags_publish
     # This should result in 270 possible tag values
     topic_tags = (random_topic + random_topic).to_set.sort
     payload = ($TEAMUPS + $EVENTS + $FIGHTS).sample
-    
+
     puts "Publishing on tags ##{topic_tags.join(' #')}", "\t #{payload}"
 
     exchange.topic(topic_tags).publish(payload)
@@ -89,7 +89,7 @@ def hierarchy_publish
 
   loop do
     topic_hash, payload = random_hierarchy
-    
+
     puts "Publishing on a hierarchical topic:"
     print_hierarchy(topic_hash)
     puts " - #{payload}", ''
@@ -102,7 +102,7 @@ end
 # Subscribes to messages on a hierarchical topic
 def hierarchy_subscribe
   exchange = Repubsub::Exchange.new(:hierarchy_demo, :db => :repubsub)
-  
+
   category, chartype, character = random_topic
   queue = exchange.queue{|topic| topic[category][chartype].contains(character)}
 

@@ -71,7 +71,7 @@ module Repubsub
       # it's possible someone else could have inserted it in the
       # meantime and this would create a duplicate. That's a risk we
       # take here. The consequence is that duplicated messages may
-      # be sent to the consumer.    
+      # be sent to the consumer.
       if result['replaced'].zero?
         @table.insert(
           :topic => topic_key,
