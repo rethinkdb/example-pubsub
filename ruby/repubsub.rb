@@ -135,9 +135,9 @@ module Repubsub
 
   # A queue that filters messages in the exchange
   class Queue
-    def initialize(exchange, &block)
+    def initialize(exchange, &filter_func)
       @exchange = exchange
-      @filter_func = block
+      @filter_func = filter_func
     end
 
     # Returns the full ReQL query for this queue
