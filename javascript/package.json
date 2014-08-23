@@ -15,7 +15,7 @@
         "type": "git"
     },
     "dependencies": {
-        "rethinkdb": "1.13.x",
+        "rethinkdb": "~1.13",
         "underscore": "~1.6.0",
         "yargs": "~1.3.1"
     },
