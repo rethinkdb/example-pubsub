@@ -1,9 +1,9 @@
-# repubsub.py #
+# repubsub.rb #
 
 Repubsub is a publish-subscribe library built on top of
-[RethinkDB](http://rethinkdb.com). This is the python version of
+[RethinkDB](http://rethinkdb.com). This is the ruby version of
 the library. There is a
-[full article](http://rethinkdb.com/docs/publish-subscribe/python/)
+[full article](http://rethinkdb.com/docs/publish-subscribe/ruby/)
 describing this library in depth.
 
 ## Installation ##
@@ -12,20 +12,21 @@ You'll need to install RethinkDB first. You can find instructions for
 that [on this page](http://rethinkdb.com/docs/install).
 
 To install the library, go into the source directory containing
-`setup.py` and run:
+`repubsub.gemspec` and run:
 
 ```bash
-$ python setup.py install
+$ gem build repubsub.gemspec
+$ gem install repubsub-1.0.0.gem
 ```
 
 ## Usage ##
 
 To connect to an exchange, create a topic and publish to it:
 
-```python
-import repubsub
+```ruby
+require 'repubsub'
 
-exchange = repubsub.Exchange('exchange_name', db='database_name')
+exchange = Repubsub::Exchange.new(:exchange_name, :db => :database_name)
 
 topic = exchange.topic('hi.there')
 
@@ -33,22 +34,23 @@ topic.publish("All subscribers to 'hi.there' will pick this up")
 ```
 
 To create a queue for listening for messages, the process is similar
-except you'll need to create a
+except you'll need to provide a
 [ReQL](http://rethinkdb.com/docs/introduction-to-reql/) filter
-function:
+block:
 
-```python
-queue = exchange.queue(lambda topic: topic.match('hi.*'))
+```ruby
+queue = exchange.queue{|topic| topic.match('hi.*')}
 
-for topic, message in queue.subscription():
-    print 'Received the message:', message
-    print 'on the topic:', topic
+queue.subscription.each do |topic, message|
+    puts "Received the message #{message}"
+    puts "on the topic: #{topic}"
+end
 ```
 
-In addition, examples of usage can be found in the [demo.py](https://github.com/rethinkdb/example-pubsub/blob/master/python/demo.py)
+In addition, examples of usage can be found in the
+[demo.rb](https://github.com/rethinkdb/example-pubsub/blob/master/ruby/demo.rb)
 file. There is also an extensive description of how the library works
-and how to use it
-[here](rethinkdb.com/docs/publish-subscribe/python).
+and how to use it [here](rethinkdb.com/docs/publish-subscribe/ruby).
 
 ## Bugs ##
 

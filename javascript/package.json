@@ -1,0 +1,26 @@
+{
+    "name": "repubsub",
+    "version": "1.0.0",
+    "description": "A publish-subscribe library using RethinkDB",
+    "main": "repubsub.js",
+    "files": ["repubsub.js", "demo.js"],
+    "bin": {"repubsub-demo": "./demo.js"},
+    "readmeFilename": "README.md",
+    "keywords": ["pubsub", "rethinkdb", "publish", "subscribe"],
+    "homepage": "http://rethinkdb.com/docs/publish-subscribe/javascript/",
+    "bugs": "https://github.com/rethinkdb/example-pubsub/issues",
+    "license": "MIT",
+    "repository": {
+        "url": "https://github.com/rethinkdb/example-pubsub",
+        "type": "git"
+    },
+    "dependencies": {
+        "rethinkdb": "1.13.x",
+        "underscore": "~1.6.0",
+        "yargs": "~1.3.1"
+    },
+    "author": {
+        "name": "Josh Kuhn",
+        "email": "josh@rethinkdb.com"
+    }
+}

@@ -1,2 +1,7 @@
 *.pyc
-
+node_modules
+*.egg-info
+dist
+build
+*.gem
+Gemfile.lock

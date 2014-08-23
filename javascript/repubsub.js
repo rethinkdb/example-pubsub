@@ -64,7 +64,7 @@ Exchange.prototype.queue = function(filterFunc){
 Exchange.prototype.fullQuery = function(filterFunc){
     return this.table.changes()('new_val').filter(function(row){
         return filterFunc(row('topic'));
-    }).pluck('topic', 'payload');
+    });
 };
 
 // Publish a message to this exchange on the given topic
@@ -103,7 +103,9 @@ Exchange.prototype.subscribe = function(filterFunc, iterFunc){
     return this.assertTable().then(function(){
         return this.fullQuery(filterFunc).run(this.conn);
     }).then(function(cursor){
-        cursor.each(iterFunc);
+        cursor.each(function(err, message){
+            iterFunc(message.topic, message.payload);
+        });
     });
 
 

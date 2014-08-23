@@ -3,8 +3,6 @@
 require 'optparse'
 
 require_relative 'repubsub'
-require 'rethinkdb'
-include RethinkDB::Shortcuts
 
 # Publishes messages to a simple string topic
 def regex_publish

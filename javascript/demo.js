@@ -36,10 +36,10 @@ function regexSubscribe() {
 
     var maybeCharacter = _.sample([rnd.character, '(.+)']);
     var maybeChartype = _.sample([
-        rnd.chartype + '\.' + maybeCharacter,
+        rnd.chartype + '\\.' + maybeCharacter,
         '(.+)',
     ]);
-    var topicRegex = '^' + rnd.category + '\.' + maybeChartype + '$';
+    var topicRegex = '^' + rnd.category + '\\.' + maybeChartype + '$';
     var queue = exchange.queue(function(topic){
         return topic.match(topicRegex);
     });
@@ -48,8 +48,7 @@ function regexSubscribe() {
     printSubscription(subMessage);
 
     var i = 0;
-    queue.subscribe(function(err, message){
-        var topic = message.topic, payload = message.payload;
+    queue.subscribe(function(topic, payload){
         if(i % 20 === 19){
             // Reminder what we're subscribed to
             printSubscription(subMessage);
@@ -92,8 +91,7 @@ function tagsSubscribe(){
     printSubscription(subMessage);
 
     var i = 0;
-    queue.subscribe(function(err, message){
-        var topic = message.topic, payload = message.payload;
+    queue.subscribe(function(topic, payload){
         if(i % 10 === 9){
             // Reminder what we're subscribed to 
             printSubscription(subMessage);
@@ -133,13 +131,13 @@ function hierarchySubscribe(){
     printSubscription(subMessage);
 
     var i = 0;
-    queue.subscribe(function(err, message){
+    queue.subscribe(function(topic, payload){
         if(i % 5 == 4){
             printSubscription(subMessage);
         }
         console.log('Received message with topic:');
-        printHierarchy(message.topic);
-        console.log(' -' + message.payload + '\n');
+        printHierarchy(topic);
+        console.log(' -' + payload + '\n');
         i++;
     });
 }
@@ -170,7 +168,7 @@ function randomHierarchy(){
             });
         });
     });
-    return {topicObj: topic, payload: _.sample(categories)}
+    return {topicObj: topic, payload: _.sample(categories)};
 }
 
 // Prints a topic hierarchy nicely
@@ -233,7 +231,7 @@ var CATEGORIES = {
 
 function main(){
     var argv = require('yargs')
-      .usage('$0 [-h] {regex,tags,hierarchy} {publish,subscribe}\n' +
+      .usage('$0 {regex,tags,hierarchy} {publish,subscribe}\n' +
              '\n' +
              'Demo for RethinkDB pub-sub\n' +
              '\n' +
