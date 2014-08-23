@@ -15,8 +15,7 @@ To install the library, go into the source directory containing
 `repubsub.gemspec` and run:
 
 ```bash
-$ gem build repubsub.gemspec
-$ gem install repubsub-1.0.0.gem
+$ bundle install
 ```
 
 ## Usage ##
