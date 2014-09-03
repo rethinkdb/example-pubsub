@@ -37,7 +37,7 @@ class Exchange(object):
     consumed from. Each exchange has an underlying RethinkDB table.'''
 
     def __init__(self, name, **kwargs):
-        self.db = kwargs.get('db', 'test')
+        self.db = kwargs.setdefault('db', 'test')
         self.name = name
         self.conn = r.connect(**kwargs)
         self.table = r.table(name)

@@ -33,7 +33,7 @@ module Repubsub
   # consumed from. Each exchange has an underlying RethinkDB table.
   class Exchange
     def initialize(name, opts={})
-      @db = opts.fetch(:db, :test)
+      @db = opts[:db] = opts.fetch(:db, :test)
       @name = name.to_s
       @conn = r.connect(opts)
       @table = r.table(name)

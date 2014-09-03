@@ -34,7 +34,7 @@ module.exports = {
 // Represents a message exchange which messages can be sent to and
 // consumed from. Each exchange has an underlying RethinkDB table.
 function Exchange(name, connOpts){
-    this.db = connOpts.db || 'test';
+    this.db = connOpts.db = connOpts.db || 'test';
     this.name = name;
     this.conn = null;
     this.table = r.table(name);
