@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='repubsub',
-    version='1.0.0',
+    version='1.0.1',
     packages=['.'],
     description='A publish-subscribe library using RethinkDB',
     license='MIT',
@@ -11,9 +11,9 @@ setup(
     author_email='josh@rethinkdb.com',
     url='http://rethinkdb.com/docs/publish-subscribe/python/',
     keywords=['pubsub', 'rethinkdb', 'publish', 'subscribe'],
-    install_requires = ['rethinkdb>=1.13, <1.14'],
+    install_requires=['rethinkdb>=1.13'],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 2 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 2.7',

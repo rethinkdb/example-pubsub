@@ -1,6 +1,6 @@
 {
     "name": "repubsub",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A publish-subscribe library using RethinkDB",
     "main": "repubsub.js",
     "files": ["repubsub.js", "demo.js"],
@@ -15,7 +15,7 @@
         "type": "git"
     },
     "dependencies": {
-        "rethinkdb": "~1.13",
+        "rethinkdb": ">=1.13",
         "underscore": "~1.6.0",
         "yargs": "~1.3.1"
     },
