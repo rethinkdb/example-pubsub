@@ -53,7 +53,7 @@ In addition, examples of usage can be found in the
 [demo.js](https://github.com/rethinkdb/example-pubsub/blob/master/javascript/demo.js)
 file. There is also an extensive description of how the library works
 and how to use it
-[here](rethinkdb.com/docs/publish-subscribe/javascript).
+[here](http://rethinkdb.com/docs/publish-subscribe/javascript).
 
 ## Bugs ##
 
