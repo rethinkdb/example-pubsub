@@ -48,7 +48,7 @@ for topic, message in queue.subscription():
 In addition, examples of usage can be found in the [demo.py](https://github.com/rethinkdb/example-pubsub/blob/master/python/demo.py)
 file. There is also an extensive description of how the library works
 and how to use it
-[here](rethinkdb.com/docs/publish-subscribe/python).
+[here](http://rethinkdb.com/docs/publish-subscribe/python).
 
 ## Bugs ##
 
