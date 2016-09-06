@@ -49,7 +49,7 @@ end
 In addition, examples of usage can be found in the
 [demo.rb](https://github.com/rethinkdb/example-pubsub/blob/master/ruby/demo.rb)
 file. There is also an extensive description of how the library works
-and how to use it [here](rethinkdb.com/docs/publish-subscribe/ruby).
+and how to use it [here](http://rethinkdb.com/docs/publish-subscribe/ruby).
 
 ## Bugs ##
 
